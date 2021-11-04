@@ -156,7 +156,7 @@ public class URLController {
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "404", description = SHORT_URL_NOT_FOUND, content = {
 					@Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = URLInfo.class)) }),
-			@ApiResponse(responseCode = "302", description = REDIRECT_MESSAGE, content = @Content) })
+			@ApiResponse(responseCode = "301", description = REDIRECT_MESSAGE, content = @Content) })
 	@GetMapping(path = "/redirect/{shortUrl}")
 	public ResponseEntity<URLInfo> redirect(@PathVariable("shortUrl") String shortUrl) {
 		if (!shortUrlCache.containsKey(shortUrl)) {
@@ -172,8 +172,10 @@ public class URLController {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, SHORT_URL_EXPIRED);
 		}
 		URLInfo urlInfo = shortUrlCache.get(shortUrl);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setLocation(URI.create(urlInfo.getUrl()));
 		LOGGER.info("Redirecting user to: {}", urlInfo.getUrl());
-		return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(urlInfo.getUrl())).build();
+		return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
 	}
 
 	private void updateCache(URLInfo urlInfo) {
