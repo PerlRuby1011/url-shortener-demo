@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.view.RedirectView;
 
 import com.cloudcompaign.repository.URLShortenerDao;
 import com.cloudcompaign.dto.URLInfo;
@@ -155,8 +156,8 @@ public class URLController {
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "404", description = SHORT_URL_NOT_FOUND, content = {
 					@Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = URLInfo.class)) }),
-			@ApiResponse(responseCode = "301", description = REDIRECT_MESSAGE, content = @Content) })
-	@PostMapping(path = "/{shortUrl}")
+			@ApiResponse(responseCode = "302", description = REDIRECT_MESSAGE, content = @Content) })
+	@GetMapping(path = "/redirect/{shortUrl}")
 	public ResponseEntity<URLInfo> redirect(@PathVariable("shortUrl") String shortUrl) {
 		if (!shortUrlCache.containsKey(shortUrl)) {
 			LOGGER.error("Long url not found for: {}", shortUrl);
@@ -171,10 +172,8 @@ public class URLController {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, SHORT_URL_EXPIRED);
 		}
 		URLInfo urlInfo = shortUrlCache.get(shortUrl);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setLocation(URI.create(urlInfo.getUrl()));
 		LOGGER.info("Redirecting user to: {}", urlInfo.getUrl());
-		return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
+		return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(urlInfo.getUrl())).build();
 	}
 
 	private void updateCache(URLInfo urlInfo) {
